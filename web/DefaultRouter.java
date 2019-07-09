@@ -15,12 +15,11 @@ import java.util.HashMap;
 import java.util.Map;
 
 public class DefaultRouter extends App {
-	
+
 	public HashMap<String, String> routes = new HashMap<String, String>();
 
 	public DefaultRouter() {
 	}
-
 	public static void main(String args[]) {
 
 		System.setProperty("http.keepAlive", "false");
@@ -46,12 +45,13 @@ public class DefaultRouter extends App {
 			System.out.println("Working Directory = " + System.getProperty("user.dir"));
 			app.configure(System.getProperty("user.dir") + "//resources");
 			File file = new File(System.getProperty("user.dir") + "//.routes");
+
 			try (BufferedReader br = new BufferedReader(new FileReader(file))) {
 				for (String line; (line = br.readLine()) != null;) {
-					String[] split  = line.split("':'");
+					String[] split = line.split("':'");
 					String route = split[0].substring(1);
-					String path = split[1].substring(0, split[1].length()-1);
-					System.out.println(route +" -> "+ path);
+					String path = split[1].substring(0, split[1].length() - 1);
+					System.out.println(route + " -> " + path);
 					app.routes.put(route, path);
 				}
 				// line is not visible here.
@@ -77,7 +77,8 @@ public class DefaultRouter extends App {
 
 		try {
 			if (routes.containsKey(path)) {
-				File file = new File(routes.get(path));
+				File file = new File(templateDir + routes.get(path));
+				Logger.log(1, file.getAbsolutePath());
 				Map<String, Object> input = new HashMap<String, Object>();
 				String p = templateDir + path;
 
@@ -90,9 +91,9 @@ public class DefaultRouter extends App {
 					}
 
 					sendFile(client, extension, file);
-				} 
-
-				sendText(client, "html", stringWriter.toString());
+				} else {
+					sendText(client, "html", stringWriter.toString());
+				}
 			} else if (path.contains("/stylesheets")) {
 				String contents = new String(Files.readAllBytes(Paths.get((templateDir + path).toLowerCase().trim())));
 				sendText(client, "css", contents);
@@ -113,11 +114,11 @@ public class DefaultRouter extends App {
 
 					sendFile(client, extension, file);
 				} else {
-					sendText(client, "html", "404: "+path+" not found");
+					sendText(client, "html", "404: " + path + " not found");
 
 				}
 			}
-		} catch ( IOException e) {
+		} catch (IOException e) {
 			e.printStackTrace();
 		}
 	}
