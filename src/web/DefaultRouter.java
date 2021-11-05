@@ -39,7 +39,7 @@ public class DefaultRouter extends App {
 
 		System.out.println("info: " + hostname + " " + ip + ":" + App.PORT);
 
-		Logger.priorityLevel = 2;
+		Logger.priorityLevel = 1;
 		DefaultRouter app = new DefaultRouter();
 		try {
 			System.out.println("Working Directory = " + System.getProperty("user.dir"));
