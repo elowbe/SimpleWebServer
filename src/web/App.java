@@ -11,23 +11,37 @@ import java.nio.file.Files;
 import java.nio.file.Paths;
 
 public abstract class App {
+	public static App runningApp;
 	public static int PORT =5000;// 80;
 	private ServerSocket ss;
 	public String templateDir;
-
+	private boolean stop;
 	public void configure(String templateDir){
 		this.templateDir = templateDir;
 
 	}
 
-	
+	public void stop() {
+		try {
+			ss.close();
+			System.out.println("asdasdasdasdasdasdasdasdasdasdasdbstgnghmgj,mhk,hjk,jhk,.hjk,");
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+		stop = true;
+		
+	}
 	public void intializeServer() throws IOException {
 		ss = new ServerSocket(PORT);
 	}
 
 	public void listen() throws IOException {
 		Logger.log(1, "Started listening on port " + PORT);
-		for (;;) {
+		if(runningApp != null) {
+			runningApp.stop();
+		}
+		runningApp = this;
+		while(!stop) {
 			connections();
 		}
 	}
