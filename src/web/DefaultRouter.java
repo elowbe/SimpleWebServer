@@ -19,6 +19,7 @@ public class DefaultRouter extends App {
 	public HashMap<String, String> routes = new HashMap<String, String>();
 
 	public DefaultRouter() {
+		super("default");
 	}
 	public static void main(String args[]) {
 
@@ -57,7 +58,7 @@ public class DefaultRouter extends App {
 				// line is not visible here.
 			}
 
-			app.intializeServer();
+			
 
 			// PenControl.init();
 			app.listen();

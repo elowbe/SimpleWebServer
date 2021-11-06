@@ -5,18 +5,27 @@ import java.io.File;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.OutputStream;
+import java.net.InetAddress;
 import java.net.ServerSocket;
 import java.net.Socket;
+import java.net.UnknownHostException;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 
 public abstract class App {
 	public static App runningApp;
-	public static int PORT =5000;// 80;
+	public static int PORT = 5000;// 80;
 	private ServerSocket ss;
 	public String templateDir;
 	private boolean stop;
-	public void configure(String templateDir){
+	String name;
+
+	public App(String name) {
+		this.name = name;
+
+	}
+
+	public void configure(String templateDir) {
 		this.templateDir = templateDir;
 
 	}
@@ -24,29 +33,43 @@ public abstract class App {
 	public void stop() {
 		try {
 			ss.close();
-			
+
 		} catch (IOException e) {
 			e.printStackTrace();
 		}
 		stop = true;
-		
+
 	}
-	public void intializeServer() throws IOException {
-		if(runningApp != null) {
+
+	private void intializeServer() throws IOException {
+		System.setProperty("http.keepAlive", "false");
+		if (runningApp != null) {
 			runningApp.stop();
-			System.out.println("Stopped App: " + runningApp);
+			Logger.log(4, "Stopped App: " + runningApp);
 		}
 		ss = new ServerSocket(PORT);
 	}
 
 	public void listen() throws IOException {
-		Logger.log(1, "Started listening on port " + PORT);
-		
-		
+		intializeServer();
+		InetAddress ip = null;
+		try {
+			ip = InetAddress.getLocalHost();
+		} catch (UnknownHostException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		String hostname = ip.getHostName();
+
+		Logger.log(4, "Started App: " + name + " (" + this + ")" + " here -> " + ip + ":" + PORT);
+
 		runningApp = this;
-		System.out.println("Started App: " + runningApp);
-		while(!stop) {
-			connections();
+		try {
+			while (!stop) {
+				connections();
+			}
+		} catch (Exception e) {
+			//Logger.log(5, e.getMessage());
 		}
 	}
 
@@ -54,8 +77,8 @@ public abstract class App {
 		String out = "";
 		if (type.equals("js")) {
 			type = "javascript";
-		}else if (type.equals("txt")) {
-			type="plain";
+		} else if (type.equals("txt")) {
+			type = "plain";
 		}
 		// Start sending our reply, using the HTTP 1.1 protocol
 		out += "HTTP/1.1 200 (OK)\r\n"; // Version & status code
@@ -74,9 +97,9 @@ public abstract class App {
 	public void sendText(Socket client, String type, String data) {
 		try {
 			String header = getHeader(type, data.getBytes().length);
-			//out.print(header + data);
-			client.getOutputStream().write((header+data).getBytes());
-			//Sout.print(data);
+			// out.print(header + data);
+			client.getOutputStream().write((header + data).getBytes());
+			// Sout.print(data);
 		} catch (IOException e) {
 			e.printStackTrace();
 		}
@@ -162,10 +185,8 @@ public abstract class App {
 
 	public abstract void post(Socket client, BufferedReader in, OutputStream out, String message, String body);
 
-	public abstract void put(Socket client, BufferedReader in,OutputStream out, String message, String body);
+	public abstract void put(Socket client, BufferedReader in, OutputStream out, String message, String body);
 
 	public abstract void delete(Socket client, BufferedReader in, OutputStream out, String message);
 
-
-	
 }
