@@ -22,8 +22,21 @@ public class RequestParser {
 		return null;
 	}
 
-	public static HashMap<String, String> parseFormData(String body) {
+	public static String getBody(String path) {
+		if (path.contains("?") && path.contains("#")) {
+			String cut = path.substring(path.indexOf("?") + 1, path.indexOf("#")).toLowerCase();
+			return cut;
+		} else if (path.contains("?")) {
+			String cut = path.substring(path.indexOf("?") + 1, path.length()).toLowerCase();
+			return cut;
+		}
+		return "";
+	}
+	public static HashMap<String, String> parseBody(String body) {
 		HashMap<String, String> bodyMap = new HashMap<String, String>();
+		return parseBody(bodyMap, body);
+	}
+	public static HashMap<String, String> parseBody(HashMap<String, String> bodyMap, String body) {
 		String[] pairs = body.split("&");
 		for (String s : pairs) {
 			String[] split = s.split("=");

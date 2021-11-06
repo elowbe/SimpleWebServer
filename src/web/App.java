@@ -24,7 +24,7 @@ public abstract class App {
 	public void stop() {
 		try {
 			ss.close();
-			System.out.println("asdasdasdasdasdasdasdasdasdasdasdbstgnghmgj,mhk,hjk,jhk,.hjk,");
+			
 		} catch (IOException e) {
 			e.printStackTrace();
 		}
@@ -32,15 +32,19 @@ public abstract class App {
 		
 	}
 	public void intializeServer() throws IOException {
+		if(runningApp != null) {
+			runningApp.stop();
+			System.out.println("Stopped App: " + runningApp);
+		}
 		ss = new ServerSocket(PORT);
 	}
 
 	public void listen() throws IOException {
 		Logger.log(1, "Started listening on port " + PORT);
-		if(runningApp != null) {
-			runningApp.stop();
-		}
+		
+		
 		runningApp = this;
+		System.out.println("Started App: " + runningApp);
 		while(!stop) {
 			connections();
 		}
