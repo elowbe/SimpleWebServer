@@ -22,7 +22,7 @@ public class RequestParser {
 		return null;
 	}
 
-	public static String getBody(String path) {
+	public static String getMessageBody(String path) {
 		if (path.contains("?") && path.contains("#")) {
 			String cut = path.substring(path.indexOf("?") + 1, path.indexOf("#")).toLowerCase();
 			return cut;

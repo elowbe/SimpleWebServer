@@ -14,7 +14,7 @@ import java.nio.file.Paths;
 
 public abstract class App {
 	public static App runningApp;
-	public static int PORT = 5000;// 80;
+	public static int PORT = 80;// 80;
 	private ServerSocket ss;
 	public String templateDir;
 	private boolean stop;
@@ -47,11 +47,14 @@ public abstract class App {
 			runningApp.stop();
 			Logger.log(4, "Stopped App: " + runningApp);
 		}
-		ss = new ServerSocket(PORT);
+		
 	}
-
 	public void listen() throws IOException {
+		listen(PORT);
+	}
+	public void listen(int port) throws IOException {
 		intializeServer();
+		ss = new ServerSocket(port);
 		InetAddress ip = null;
 		try {
 			ip = InetAddress.getLocalHost();
@@ -61,7 +64,7 @@ public abstract class App {
 		}
 		String hostname = ip.getHostName();
 
-		Logger.log(4, "Started App: " + name + " (" + this + ")" + " here -> " + ip + ":" + PORT);
+		Logger.log(4, "Started App: " + name + " (" + this + ")" + " here -> " + ip + ":" + port);
 
 		runningApp = this;
 		try {
@@ -69,24 +72,16 @@ public abstract class App {
 				connections();
 			}
 		} catch (Exception e) {
-			//Logger.log(5, e.getMessage());
+			// Logger.log(5, e.getMessage());
 		}
 	}
 
 	public String getHeader(String type, int contentLength) {
 		String out = "";
-		if (type.equals("js")) {
-			type = "javascript";
-		} else if (type.equals("txt")) {
-			type = "plain";
-		}
+
 		// Start sending our reply, using the HTTP 1.1 protocol
 		out += "HTTP/1.1 200 (OK)\r\n"; // Version & status code
-		if (type.equals("png") || type.equals("jpeg")) {
-			out += "Content-Type: image/" + type + "\r\n"; // The type of data
-		} else {
-			out += "Content-Type: text/" + type + "\r\n"; // The type of data
-		}
+		out += "Content-Type: " + type + "\r\n"; // The type of data
 		if (contentLength > 0) {
 			out += "Content-Length: " + contentLength + "\r\n";
 		}

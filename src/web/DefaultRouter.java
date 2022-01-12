@@ -24,11 +24,11 @@ public class DefaultRouter extends App {
 	public static void main(String args[]) {
 
 		System.setProperty("http.keepAlive", "false");
-		App.PORT = 80;
-		if (System.getenv("PORT") != null) {
-			App.PORT = Integer.parseInt(System.getenv("PORT"));
-			System.out.println("port: " + App.PORT);
-		}
+//		App.PORT = 80;
+//		if (System.getenv("PORT") != null) {
+//			App.PORT = Integer.parseInt(System.getenv("PORT"));
+//			System.out.println("port: " + App.PORT);
+//		}
 		InetAddress ip = null;
 		try {
 			ip = InetAddress.getLocalHost();
