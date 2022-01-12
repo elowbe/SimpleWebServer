@@ -20,15 +20,16 @@ public class DefaultRouter extends App {
 
 	public DefaultRouter() {
 		super("default");
+		PORT = 80;
+		if (System.getenv("PORT") != null) {
+			PORT = Integer.parseInt(System.getenv("PORT"));
+			System.out.println("port: " + PORT);
+		}
 	}
 	public static void main(String args[]) {
-
+		
 		System.setProperty("http.keepAlive", "false");
-		App.PORT = 80;
-		if (System.getenv("PORT") != null) {
-			App.PORT = Integer.parseInt(System.getenv("PORT"));
-			System.out.println("port: " + App.PORT);
-		}
+		
 		InetAddress ip = null;
 		try {
 			ip = InetAddress.getLocalHost();
@@ -38,7 +39,7 @@ public class DefaultRouter extends App {
 		}
 		String hostname = ip.getHostName();
 
-		System.out.println("info: " + hostname + " " + ip + ":" + App.PORT);
+		System.out.println("info: " + hostname + " " + ip + ":");
 
 		Logger.priorityLevel = 1;
 		DefaultRouter app = new DefaultRouter();
