@@ -38,7 +38,7 @@ public class DefaultRouter extends App {
 		}
 		String hostname = ip.getHostName();
 
-		System.out.println("info: " + hostname + " " + ip + ":" + App.PORT);
+		//System.out.println("info: " + hostname + " " + ip + ":" + App.PORT);
 
 		Logger.priorityLevel = 1;
 		DefaultRouter app = new DefaultRouter();
