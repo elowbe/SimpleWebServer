@@ -13,7 +13,7 @@ import java.nio.file.Files;
 import java.nio.file.Paths;
 
 public abstract class App {
-	public int PORT = 5000;// 80;
+	public int port = 5000;// 80;
 	private ServerSocket ss;
 	public String templateDir;
 	private boolean stop;
@@ -42,10 +42,9 @@ public abstract class App {
 
 	private void intializeServer() throws IOException {
 		System.setProperty("http.keepAlive", "false");
-		ss = new ServerSocket(PORT);
 	}
 	public void listen() throws IOException {
-		listen(PORT);
+		listen(port);
 	}
 	public void listen(int port) throws IOException {
 		intializeServer();
@@ -59,7 +58,7 @@ public abstract class App {
 		}
 		String hostname = ip.getHostName();
 
-		Logger.log(4, "Started App: " + name + " (" + this + ")" + " here -> " + ip + ":" + PORT);
+		Logger.log(4, "Started App: " + name + " (" + this + ")" + " here -> " + ip + ":" + port);
 		try {
 			while (!stop) {
 				connections();
