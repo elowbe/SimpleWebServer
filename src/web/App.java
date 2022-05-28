@@ -32,8 +32,7 @@ public abstract class App {
 	public void stop() {
 		try {
 			ss.close();
-
-		} catch (IOException e) {
+		} catch (Exception e) {
 			e.printStackTrace();
 		}
 		stop = true;
@@ -43,9 +42,11 @@ public abstract class App {
 	private void intializeServer() throws IOException {
 		System.setProperty("http.keepAlive", "false");
 	}
+
 	public void listen() throws IOException {
 		listen(port);
 	}
+
 	public void listen(int port) throws IOException {
 		intializeServer();
 		ss = new ServerSocket(port);
@@ -116,23 +117,24 @@ public abstract class App {
 		String line = "";
 
 		String response = line = in.readLine();
+		
 		if (line != null) {
 			String[] pieces = line.split(" ");
 			String method = pieces[0].trim().toLowerCase();
 			String path = pieces[1].trim().toLowerCase();
 
 			String r = "";
-			final String contentHeader = "Content-Length: ";
+			final String contentHeader = "Content-Length:";
 			int contentLength = 0;
 			while ((r = in.readLine()) != null) {
 				if (r.length() == 0)
 					break;
-				if (r.startsWith(contentHeader)) {
-					contentLength = Integer.parseInt(r.substring(contentHeader.length()));
+				if (r.toLowerCase().startsWith(contentHeader.toLowerCase())) {
+					contentLength = Integer.parseInt(r.substring(contentHeader.length()).trim());
 				}
 				response += r + "\n";
 			}
-			Logger.log(0, response);
+			
 			Logger.log(1, "METHOD: " + method + "; MESSAGE: " + path);
 
 			if (method.equals("get")) {

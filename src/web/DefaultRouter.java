@@ -103,9 +103,11 @@ public class DefaultRouter extends App {
 				sendText(client, "javascript", contents);
 			} else {
 				String p = templateDir + path;
-
+				File parent = new File(templateDir + routes.get(path));
 				File file = new File(p);
-				if (file.exists() && !file.isDirectory()) {
+				boolean areRelated = file.getCanonicalPath().startsWith(parent.getCanonicalPath() + File.separator);
+
+				if (file.exists() && !file.isDirectory() && areRelated) {
 					String extension = "";
 
 					int i = p.lastIndexOf('.');
