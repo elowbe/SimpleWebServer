@@ -16,7 +16,7 @@ package web;
  */
 public class Logger {
 
-	public static int priorityLevel = 0;
+	public static int priorityLevel = 5;
 
 	/**
 	 * 
@@ -28,7 +28,7 @@ public class Logger {
 	public static void log(int priority, Object message) {
 		if (priorityLevel >= 0 && priority >= priorityLevel) {
 			if (priority >= 5) {
-				System.err.println(message);
+				//System.err.println(message);
 			} else {
 				System.out.println(message);
 			}

@@ -43,7 +43,7 @@ public class DefaultRouter extends App {
 		Logger.priorityLevel = 1;
 		DefaultRouter app = new DefaultRouter();
 		try {
-			System.out.println("Working Directory = " + System.getProperty("user.dir"));
+			//System.out.println("Working Directory = " + System.getProperty("user.dir"));
 			app.configure(System.getProperty("user.dir") + "//resources");
 			File file = new File(System.getProperty("user.dir") + "//.routes");
 
@@ -52,7 +52,7 @@ public class DefaultRouter extends App {
 					String[] split = line.split("':'");
 					String route = split[0].substring(1);
 					String path = split[1].substring(0, split[1].length() - 1);
-					System.out.println(route + " -> " + path);
+					//System.out.println(route + " -> " + path);
 					app.routes.put(route, path);
 				}
 				// line is not visible here.

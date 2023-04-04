@@ -16,8 +16,9 @@ public abstract class App {
 	public int port = 5000;// 80;
 	private ServerSocket ss;
 	public String templateDir;
-	private boolean stop;
+	private volatile boolean stop;
 	String name;
+	private volatile boolean isStopped = true;
 
 	public App(String name) {
 		this.name = name;
@@ -30,10 +31,14 @@ public abstract class App {
 	}
 
 	public void stop() {
-		try {
-			ss.close();
-		} catch (Exception e) {
-			e.printStackTrace();
+		Logger.log(4, "Stopping app: " + this);
+		// new Exception().printStackTrace();
+		if (ss != null) {
+			try {
+				ss.close();
+			} catch (IOException e) {
+				e.printStackTrace();
+			}
 		}
 		stop = true;
 
@@ -41,6 +46,7 @@ public abstract class App {
 
 	private void intializeServer() throws IOException {
 		System.setProperty("http.keepAlive", "false");
+		stop = false;
 	}
 
 	public void listen() throws IOException {
@@ -60,16 +66,24 @@ public abstract class App {
 		String hostname = ip.getHostName();
 
 		Logger.log(4, "Started App: " + name + " (" + this + ")" + " here -> " + ip + ":" + port);
-		try {
-			while (!stop) {
+
+		while (!stop) {
+
+			isStopped = false;
+			try {
 				connections();
+			} catch (Exception e) {
+				// Logger.log(5, e.getMessage());
+				e.printStackTrace();
+				stop = true;
 			}
-		} catch (Exception e) {
-			// Logger.log(5, e.getMessage());
+
 		}
+		isStopped = true;
+		Logger.log(4, this + " Server closed");
 	}
 
-	public String getHeader(String type, int contentLength) {
+	public static String getHeader(String type, int contentLength) {
 		String out = "";
 
 		// Start sending our reply, using the HTTP 1.1 protocol
@@ -82,7 +96,7 @@ public abstract class App {
 		return out + "\r\n";
 	}
 
-	public void sendText(Socket client, String type, String data) {
+	public static void sendText(Socket client, String type, String data) {
 		try {
 			String header = getHeader(type, data.getBytes().length);
 			// out.print(header + data);
@@ -94,7 +108,7 @@ public abstract class App {
 
 	}
 
-	public void sendFile(Socket client, String type, File file) {
+	public static void sendFile(Socket client, String type, File file) {
 		try {
 			byte[] data = Files.readAllBytes(Paths.get(file.getAbsolutePath()));
 			String header = getHeader(type, data.length);
@@ -110,64 +124,82 @@ public abstract class App {
 		// Wait for a client to connect. The method will block;
 		// when it returns the socket will be connected to the client
 		Socket client = ss.accept();
+		Runnable run = new Runnable() {
 
-		// Get input and output streams to talk to the client
-		BufferedReader in = new BufferedReader(new InputStreamReader(client.getInputStream()));
-		OutputStream out = client.getOutputStream();
-		String line = "";
+			@Override
+			public void run() {
+				// Get input and output streams to talk to the client
+				BufferedReader in;
+				try {
+					in = new BufferedReader(new InputStreamReader(client.getInputStream()));
 
-		String response = line = in.readLine();
-		
-		if (line != null) {
-			String[] pieces = line.split(" ");
-			String method = pieces[0].trim().toLowerCase();
-			String path = pieces[1].trim().toLowerCase();
+					OutputStream out = client.getOutputStream();
+					String line = "";
 
-			String r = "";
-			final String contentHeader = "Content-Length:";
-			int contentLength = 0;
-			while ((r = in.readLine()) != null) {
-				if (r.length() == 0)
-					break;
-				if (r.toLowerCase().startsWith(contentHeader.toLowerCase())) {
-					contentLength = Integer.parseInt(r.substring(contentHeader.length()).trim());
+					String response = line = in.readLine();
+
+					if (line != null) {
+						String[] pieces = line.split(" ");
+						String method = pieces[0].trim().toLowerCase();
+						String path = pieces[1].trim().toLowerCase();
+
+						String r = "";
+						final String contentHeader = "Content-Length:";
+						int contentLength = 0;
+						while ((r = in.readLine()) != null) {
+							if (r.length() == 0)
+								break;
+							if (r.toLowerCase().startsWith(contentHeader.toLowerCase())) {
+								contentLength = Integer.parseInt(r.substring(contentHeader.length()).trim());
+							}
+							response += r + "\n";
+						}
+
+						//Logger.log(1, "METHOD: " + method + "; MESSAGE: " + path);
+
+						if (method.equals("get")) {
+							get(client, in, out, path);
+						} else if (method.equals("post")) {
+
+							StringBuilder body = new StringBuilder();
+
+							int c = 0;
+							for (int i = 0; i < contentLength; i++) {
+								c = in.read();
+								body.append((char) c);
+							}
+						//	Logger.log(1, "BODY:" + body.toString());
+
+							post(client, in, out, path, body.toString());
+						} else if (method.equals("put")) {
+							StringBuilder body = new StringBuilder();
+							int c = 0;
+							for (int i = 0; i < contentLength; i++) {
+								c = in.read();
+								body.append((char) c);
+							}
+						//	Logger.log(1, "BODY:" + body.toString());
+
+							put(client, in, out, path, body.toString());
+						} else if (method.equals("delete")) {
+							delete(client, in, out, path);
+						}
+
+						out.close();
+						in.close();
+						client.close();
+					}
+
+				} catch (IOException e) {
+					e.printStackTrace();
 				}
-				response += r + "\n";
 			}
-			
-			Logger.log(1, "METHOD: " + method + "; MESSAGE: " + path);
+		};
+		run.run();
+	}
 
-			if (method.equals("get")) {
-				get(client, in, out, path);
-			} else if (method.equals("post")) {
-
-				StringBuilder body = new StringBuilder();
-				int c = 0;
-				for (int i = 0; i < contentLength; i++) {
-					c = in.read();
-					body.append((char) c);
-				}
-				Logger.log(1, "BODY:" + body.toString());
-
-				post(client, in, out, path, body.toString());
-			} else if (method.equals("put")) {
-				StringBuilder body = new StringBuilder();
-				int c = 0;
-				for (int i = 0; i < contentLength; i++) {
-					c = in.read();
-					body.append((char) c);
-				}
-				Logger.log(1, "BODY:" + body.toString());
-
-				put(client, in, out, path, body.toString());
-			} else if (method.equals("delete")) {
-				delete(client, in, out, path);
-			}
-
-			out.close();
-			in.close();
-			client.close();
-		}
+	public boolean isStopped() {
+		return isStopped;
 	}
 
 	public abstract void get(Socket client, BufferedReader in, OutputStream out, String message);
