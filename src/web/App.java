@@ -2,6 +2,7 @@ package web;
 
 import java.io.BufferedReader;
 import java.io.File;
+import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.OutputStream;
@@ -9,8 +10,6 @@ import java.net.InetAddress;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.net.UnknownHostException;
-import java.nio.file.Files;
-import java.nio.file.Paths;
 
 public abstract class App {
 	public int port = 5000;// 80;
@@ -109,13 +108,26 @@ public abstract class App {
 	}
 
 	public static void sendFile(Socket client, String type, File file) {
-		try {
-			byte[] data = Files.readAllBytes(Paths.get(file.getAbsolutePath()));
-			String header = getHeader(type, data.length);
-			client.getOutputStream().write((header).getBytes());
-			client.getOutputStream().write(data);
+		try (OutputStream out = client.getOutputStream(); FileInputStream fileInputStream = new FileInputStream(file)) {
+			// Send HTTP Header
+			out.write(("HTTP/1.1 200 OK\r\n").getBytes());
+			out.write(("ContentType: " + type + "\r\n").getBytes());
+			out.write("\r\n".getBytes());
+
+			// Send file content
+			byte[] buffer = new byte[4096];
+			int bytes;
+			while ((bytes = fileInputStream.read(buffer)) != -1) {
+				out.write(buffer, 0, bytes);
+			}
 		} catch (IOException e) {
 			e.printStackTrace();
+		} finally {
+			try {
+				client.close();
+			} catch (IOException e) {
+				e.printStackTrace();
+			}
 		}
 
 	}
@@ -135,56 +147,60 @@ public abstract class App {
 
 					OutputStream out = client.getOutputStream();
 					String line = "";
-
 					String response = line = in.readLine();
+					try {
+						if (line != null && line.contains(" ")) {
+							// TODO check this output out again
+							// System.out.println("--- " + line);
+							String[] pieces = line.split(" ");
+							if (pieces.length > 1) {
+								String method = pieces[0].trim().toLowerCase();
+								String path = pieces[1].trim().toLowerCase();
 
-					if (line != null) {
-						String[] pieces = line.split(" ");
-						String method = pieces[0].trim().toLowerCase();
-						String path = pieces[1].trim().toLowerCase();
+								String r = "";
+								final String contentHeader = "Content-Length:";
+								int contentLength = 0;
+								while ((r = in.readLine()) != null) {
+									if (r.length() == 0)
+										break;
+									if (r.toLowerCase().startsWith(contentHeader.toLowerCase())) {
+										contentLength = Integer.parseInt(r.substring(contentHeader.length()).trim());
+									}
+									response += r + "\n";
+								}
 
-						String r = "";
-						final String contentHeader = "Content-Length:";
-						int contentLength = 0;
-						while ((r = in.readLine()) != null) {
-							if (r.length() == 0)
-								break;
-							if (r.toLowerCase().startsWith(contentHeader.toLowerCase())) {
-								contentLength = Integer.parseInt(r.substring(contentHeader.length()).trim());
+								// Logger.log(1, "METHOD: " + method + "; MESSAGE: " + path);
+
+								if (method.equals("get")) {
+									get(client, in, out, path);
+								} else if (method.equals("post")) {
+
+									StringBuilder body = new StringBuilder();
+
+									int c = 0;
+									for (int i = 0; i < contentLength; i++) {
+										c = in.read();
+										body.append((char) c);
+									}
+									// Logger.log(1, "BODY:" + body.toString());
+
+									post(client, in, out, path, body.toString());
+								} else if (method.equals("put")) {
+									StringBuilder body = new StringBuilder();
+									int c = 0;
+									for (int i = 0; i < contentLength; i++) {
+										c = in.read();
+										body.append((char) c);
+									}
+									// Logger.log(1, "BODY:" + body.toString());
+
+									put(client, in, out, path, body.toString());
+								} else if (method.equals("delete")) {
+									delete(client, in, out, path);
+								}
 							}
-							response += r + "\n";
 						}
-
-						//Logger.log(1, "METHOD: " + method + "; MESSAGE: " + path);
-
-						if (method.equals("get")) {
-							get(client, in, out, path);
-						} else if (method.equals("post")) {
-
-							StringBuilder body = new StringBuilder();
-
-							int c = 0;
-							for (int i = 0; i < contentLength; i++) {
-								c = in.read();
-								body.append((char) c);
-							}
-						//	Logger.log(1, "BODY:" + body.toString());
-
-							post(client, in, out, path, body.toString());
-						} else if (method.equals("put")) {
-							StringBuilder body = new StringBuilder();
-							int c = 0;
-							for (int i = 0; i < contentLength; i++) {
-								c = in.read();
-								body.append((char) c);
-							}
-						//	Logger.log(1, "BODY:" + body.toString());
-
-							put(client, in, out, path, body.toString());
-						} else if (method.equals("delete")) {
-							delete(client, in, out, path);
-						}
-
+					} finally {
 						out.close();
 						in.close();
 						client.close();
@@ -196,6 +212,7 @@ public abstract class App {
 			}
 		};
 		run.run();
+		//new Thread(run).start();
 	}
 
 	public boolean isStopped() {
