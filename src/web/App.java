@@ -10,10 +10,20 @@ import java.net.InetAddress;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.net.UnknownHostException;
+import java.security.KeyManagementException;
+import java.security.KeyStoreException;
+import java.security.NoSuchAlgorithmException;
+import java.security.UnrecoverableKeyException;
+import java.security.cert.CertificateException;
+
+import javax.net.ssl.SSLServerSocket;
+import javax.net.ssl.SSLSocket;
 
 public abstract class App {
+	public boolean useSSL;
 	public int port = 5000;// 80;
-	private ServerSocket ss;
+	private SSLServerSocket sslServerSocket;
+	private ServerSocket serverSocket;
 	public String templateDir;
 	private volatile boolean stop;
 	String name;
@@ -32,9 +42,9 @@ public abstract class App {
 	public void stop() {
 		Logger.log(4, "Stopping app: " + this);
 		// new Exception().printStackTrace();
-		if (ss != null) {
+		if (sslServerSocket != null) {
 			try {
-				ss.close();
+				sslServerSocket.close();
 			} catch (IOException e) {
 				e.printStackTrace();
 			}
@@ -52,9 +62,28 @@ public abstract class App {
 		listen(port);
 	}
 
+	private static final String[] protocols = new String[] { "TLSv1.3" };
+	private static final String[] cipher_suites = new String[] { "TLS_AES_128_GCM_SHA256" };
+
 	public void listen(int port) throws IOException {
 		intializeServer();
-		ss = new ServerSocket(port);
+
+		SSLManager sslManager = null;
+		try {
+			sslManager = new SSLManager("myKeyStore.jks", "myStorePassword");
+		} catch (UnrecoverableKeyException | KeyManagementException | NoSuchAlgorithmException | KeyStoreException
+				| CertificateException | IOException e1) {
+			e1.printStackTrace();
+			return;
+		}
+		if (useSSL) {
+			sslServerSocket = sslManager.createSSLServerSocket(port);
+			sslServerSocket.setEnabledProtocols(protocols);
+
+			sslServerSocket.setEnabledCipherSuites(cipher_suites);
+		} else {
+			serverSocket = new ServerSocket(port);
+		}
 		InetAddress ip = null;
 		try {
 			ip = InetAddress.getLocalHost();
@@ -65,18 +94,26 @@ public abstract class App {
 		String hostname = ip.getHostName();
 
 		Logger.log(4, "Started App: " + name + " (" + this + ")" + " here -> " + ip + ":" + port);
+		try {
+			while (!stop) {
 
-		while (!stop) {
+				isStopped = false;
+				try {
+					connections();
+				} catch (Exception e) {
+					// Logger.log(5, e.getMessage());
+					e.printStackTrace();
+					stop = true;
+				}
 
-			isStopped = false;
-			try {
-				connections();
-			} catch (Exception e) {
-				// Logger.log(5, e.getMessage());
-				e.printStackTrace();
-				stop = true;
 			}
-
+		} finally {
+			if (sslServerSocket != null) {
+				sslServerSocket.close();
+			}
+			if (serverSocket != null) {
+				serverSocket.close();
+			}
 		}
 		isStopped = true;
 		Logger.log(4, this + " Server closed");
@@ -135,7 +172,14 @@ public abstract class App {
 	public void connections() throws IOException {
 		// Wait for a client to connect. The method will block;
 		// when it returns the socket will be connected to the client
-		Socket client = ss.accept();
+		Socket clientSelect = null;
+
+		if (useSSL) {
+			clientSelect = (SSLSocket) sslServerSocket.accept();
+		} else {
+			clientSelect = serverSocket.accept();
+		}
+		final Socket client = clientSelect;
 		Runnable run = new Runnable() {
 
 			@Override
@@ -208,11 +252,13 @@ public abstract class App {
 
 				} catch (IOException e) {
 					e.printStackTrace();
+				} finally {
+
 				}
 			}
 		};
 		run.run();
-		//new Thread(run).start();
+		// new Thread(run).start();
 	}
 
 	public boolean isStopped() {
