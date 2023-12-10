@@ -42,15 +42,25 @@ public abstract class App {
 	public void stop() {
 		Logger.log(4, "Stopping app: " + this);
 		// new Exception().printStackTrace();
+		stop = true;
 		if (sslServerSocket != null) {
 			try {
 				sslServerSocket.close();
 			} catch (IOException e) {
 				e.printStackTrace();
+			} finally {
+				sslServerSocket = null;
 			}
 		}
-		stop = true;
-
+		if (serverSocket != null) {
+			try {
+				serverSocket.close();
+			} catch (IOException e) {
+				e.printStackTrace();
+			} finally {
+				serverSocket = null;
+			}
+		}
 	}
 
 	private void intializeServer() throws IOException {
@@ -109,11 +119,18 @@ public abstract class App {
 			}
 		} finally {
 			if (sslServerSocket != null) {
-				sslServerSocket.close();
+				if (sslServerSocket.isClosed() == false) {
+					sslServerSocket.close();
+				}
+				sslServerSocket = null;
 			}
 			if (serverSocket != null) {
-				serverSocket.close();
+				if (serverSocket.isClosed() == false) {
+					serverSocket.close();
+				}
+				serverSocket = null;
 			}
+			isStopped = true;
 		}
 		isStopped = true;
 		Logger.log(4, this + " Server closed");
