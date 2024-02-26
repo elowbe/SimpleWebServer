@@ -91,7 +91,7 @@ public class DefaultRouter extends App {
 						extension = p.substring(i + 1);
 					}
 
-					sendFile(client, extension, file);
+					sendFile(client, extension, file, null);
 				} else {
 					sendText(client, "html", stringWriter.toString());
 				}
@@ -115,7 +115,7 @@ public class DefaultRouter extends App {
 						extension = p.substring(i + 1);
 					}
 
-					sendFile(client, extension, file);
+					sendFile(client, extension, file, null);
 				} else {
 					sendText(client, "html", "404: " + path + " not found");
 

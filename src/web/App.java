@@ -1,6 +1,7 @@
 package web;
 
 import java.io.BufferedReader;
+import java.io.DataOutputStream;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
@@ -78,15 +79,15 @@ public abstract class App {
 	public void listen(int port) throws IOException {
 		intializeServer();
 
-		SSLManager sslManager = null;
-		try {
-			sslManager = new SSLManager("myKeyStore.jks", "myStorePassword");
-		} catch (UnrecoverableKeyException | KeyManagementException | NoSuchAlgorithmException | KeyStoreException
-				| CertificateException | IOException e1) {
-			e1.printStackTrace();
-			return;
-		}
 		if (useSSL) {
+			SSLManager sslManager = null;
+			try {
+				sslManager = new SSLManager("myKeyStore.jks", "myStorePassword");
+			} catch (UnrecoverableKeyException | KeyManagementException | NoSuchAlgorithmException | KeyStoreException
+					| CertificateException | IOException e1) {
+				e1.printStackTrace();
+				return;
+			}
 			sslServerSocket = sslManager.createSSLServerSocket(port);
 			sslServerSocket.setEnabledProtocols(protocols);
 
@@ -161,19 +162,33 @@ public abstract class App {
 
 	}
 
-	public static void sendFile(Socket client, String type, File file) {
-		try (OutputStream out = client.getOutputStream(); FileInputStream fileInputStream = new FileInputStream(file)) {
-			// Send HTTP Header
-			out.write(("HTTP/1.1 200 OK\r\n").getBytes());
-			out.write(("ContentType: " + type + "\r\n").getBytes());
-			out.write("\r\n".getBytes());
+	public static void sendFile(Socket client, String type, File file, String headerOverride) {
 
+		String fileName = file.getName();
+		try (DataOutputStream out = new DataOutputStream(client.getOutputStream());
+				FileInputStream fileInputStream = new FileInputStream(file)) {
+			long fileSize = file.length(); // Get the file size
+			System.out.println(fileName + ": " + fileSize);
+			// Send HTTP Header
+			out.write(("HTTP/1.1 200 OK\r\n").getBytes("ASCII"));
+			if (headerOverride != null && headerOverride.length() > 0) {
+				out.write(headerOverride.getBytes("ASCII"));
+				
+			}else {
+				//out.write(("HTTP/1.1 200 OK\r\n").getBytes("ASCII"));
+				out.write(("Content-Type: " + type + "\r\n").getBytes("ASCII"));
+				out.write(("Content-Length: " + fileSize + "\r\n").getBytes("ASCII")); // Send the content length
+				out.write(("Content-Disposition: attachment; filename=\"" + fileName + "\"\r\n").getBytes("ASCII"));
+				out.write(("Connection: close\r\n").getBytes("ASCII"));
+				out.write("\r\n".getBytes("ASCII"));
+			}
 			// Send file content
-			byte[] buffer = new byte[4096];
+			byte[] buffer = new byte[1024];
 			int bytes;
 			while ((bytes = fileInputStream.read(buffer)) != -1) {
 				out.write(buffer, 0, bytes);
 			}
+			out.flush();
 		} catch (IOException e) {
 			e.printStackTrace();
 		} finally {
